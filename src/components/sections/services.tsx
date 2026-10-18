@@ -65,7 +65,6 @@ export default function Services() {
             alt=""
           />
 
-          <span></span>
         </div>
 
         <p className="services-intro">
