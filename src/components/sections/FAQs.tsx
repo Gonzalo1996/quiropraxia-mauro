@@ -3,9 +3,25 @@
 
 import { useState } from "react";
 
+type AnswerText = {
+  text: string;
+  bold?: string[];
+};
+
+type AnswerBlock =
+  | {
+      type: "paragraph";
+      text: string;
+      bold?: string[];
+    }
+  | {
+      type: "list";
+      items: AnswerText[];
+    };
+
 type FAQItem = {
   question: string;
-  answer: string;
+  answer: AnswerBlock[];
 };
 
 type FAQsProps = {
@@ -14,6 +30,45 @@ type FAQsProps = {
   questions: FAQItem[];
   whatsappUrl: string;
 };
+
+// Permite resaltar frases específicas sin modificar el texto original.
+function RichText({
+  text,
+  bold = [],
+}: AnswerText) {
+  const phrases = [...new Set(bold.filter(Boolean))].sort(
+    (a, b) => b.length - a.length
+  );
+
+  if (phrases.length === 0) {
+    return <>{text}</>;
+  }
+
+  const escapedPhrases = phrases.map((phrase) =>
+    phrase.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+  );
+
+  const regex = new RegExp(`(${escapedPhrases.join("|")})`, "g");
+  const parts = text.split(regex);
+  const boldSet = new Set(phrases);
+
+  return (
+    <>
+      {parts.map((part, index) =>
+        boldSet.has(part) ? (
+          <strong
+            key={index}
+            className="font-bold text-[#003652]"
+          >
+            {part}
+          </strong>
+        ) : (
+          part
+        )
+      )}
+    </>
+  );
+}
 
 export default function FAQs({
   eyebrow,
@@ -116,9 +171,36 @@ export default function FAQs({
                 >
                   <div className="min-h-0 overflow-hidden">
                     <div className="mx-4 border-t border-[#EAEAEA] px-0 pb-6 pt-4 sm:mx-6">
-                      <p className="text-[13px] leading-7 text-[#5A5A5A] sm:text-base">
-                        {item.answer}
-                      </p>
+                      <div className="flex flex-col gap-4 text-[13px] leading-7 text-[#5A5A5A] sm:text-base">
+                        {item.answer.map((block, blockIndex) => {
+                          if (block.type === "paragraph") {
+                            return (
+                              <p key={blockIndex}>
+                                <RichText
+                                  text={block.text}
+                                  bold={block.bold}
+                                />
+                              </p>
+                            );
+                          }
+
+                          return (
+                            <ul
+                              key={blockIndex}
+                              className="list-disc space-y-2 pl-6 marker:text-[#4F9F34]"
+                            >
+                              {block.items.map((listItem, itemIndex) => (
+                                <li key={itemIndex}>
+                                  <RichText
+                                    text={listItem.text}
+                                    bold={listItem.bold}
+                                  />
+                                </li>
+                              ))}
+                            </ul>
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -128,7 +210,7 @@ export default function FAQs({
         </div>
       </div>
 
-      {/* Banner final */}
+      {/* Banner final: diseño original */}
       <div className="mx-auto mt-16 flex w-full max-w-[1280px] flex-col items-start justify-between gap-7 rounded-[8px] bg-[#1A3A5B] px-6 py-10 sm:px-10 md:mt-20 md:flex-row md:items-center md:gap-10 lg:px-14">
         <div className="flex max-w-3xl flex-col text-left">
           <h2 className="text-[20px] font-bold leading-tight text-white sm:text-[24px]">
